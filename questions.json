@@ -1,0 +1,25 @@
+    [
+      {
+        "question": "JavaScript中，以下哪个不是原始数据类型？",
+        "choices": [
+          "String", 
+          "Number", 
+          "Array",  
+          "Boolean"  
+        ],
+        "correctAnswer": 2 
+      },
+
+
+      {
+        "question": "HTML中，用于创建超链接的标签是？",
+        "choices": [
+          "<link>", 
+          "<a>",   
+          "<href>", 
+          "<url>"   
+        ],
+        "correctAnswer": 1 
+      }
+    ]
+    

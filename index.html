@@ -1,0 +1,211 @@
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>我的在线题库</title>
+        <style>
+            /* CSS：用来美化网页 */
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                background-color: #f4f4f9;
+                color: #333;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+            }
+            #quiz-container {
+                background-color: white;
+                padding: 2rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                max-width: 600px;
+                width: 100%;
+            }
+            h1 {
+                color: #5a67d8;
+                text-align: center;
+            }
+            .question-block {
+                margin-bottom: 1.5rem;
+            }
+            .choices-block {
+                list-style-type: none;
+                padding: 0;
+            }
+            .choice-button {
+                background-color: #e2e8f0;
+                border: 1px solid #cbd5e0;
+                border-radius: 4px;
+                padding: 0.75rem 1rem;
+                margin-bottom: 0.5rem;
+                width: 100%;
+                text-align: left;
+                cursor: pointer;
+                transition: background-color 0.2s, border-color 0.2s;
+            }
+            .choice-button:hover:not(:disabled) {
+                background-color: #cbd5e0;
+            }
+            .choice-button.correct {
+                background-color: #9ae6b4;
+                border-color: #68d391;
+            }
+            .choice-button.incorrect {
+                background-color: #feb2b2;
+                border-color: #fc8181;
+            }
+            #next-button {
+                display: block;
+                width: 100%;
+                padding: 0.75rem;
+                background-color: #5a67d8;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 1rem;
+                cursor: pointer;
+                margin-top: 1rem;
+            }
+            #next-button:hover {
+                background-color: #434190;
+            }
+            #results-container {
+                text-align: center;
+                font-size: 1.2rem;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div id="quiz-container">
+            <h1>期末考试刷题</h1>
+            <div id="question-container"></div>
+            <div id="results-container" style="display: none;"></div>
+            <button id="next-button" style="display: none;">下一题</button>
+        </div>
+
+        <script>
+            // JavaScript：让网页“活”起来的核心逻辑
+            
+            // 获取HTML中的元素，方便我们操作它们
+            const quizContainer = document.getElementById('quiz-container');
+            const questionContainer = document.getElementById('question-container');
+            const nextButton = document.getElementById('next-button');
+            const resultsContainer = document.getElementById('results-container');
+
+            let questions = []; // 用来存放从questions.json读取到的所有题目
+            let currentQuestionIndex = 0; // 当前正在回答第几题（索引）
+            let score = 0; // 得分
+
+            // 使用fetch API异步读取questions.json文件
+            // 'async/await' 是现代JavaScript处理异步操作的推荐方式
+            async function loadQuestions() {
+                try {
+                    const response = await fetch('questions.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    questions = await response.json(); // 将JSON文本转换为JavaScript对象
+                    startQuiz();
+                } catch (error) {
+                    questionContainer.innerHTML = `<p style="color: red;">加载题目失败: ${error.message}. 请确保questions.json文件存在且格式正确。</p>`;
+                }
+            }
+
+            // 开始测验
+            function startQuiz() {
+                currentQuestionIndex = 0;
+                score = 0;
+                resultsContainer.style.display = 'none';
+                nextButton.style.display = 'none';
+                showQuestion();
+            }
+
+            // 显示当前题目
+            function showQuestion() {
+                resetState();
+                const currentQuestion = questions[currentQuestionIndex];
+                const questionNo = currentQuestionIndex + 1;
+                questionContainer.innerHTML = `<div class="question-block"><h2>第 ${questionNo} 题: ${currentQuestion.question}</h2></div>`;
+
+                // 显示选项
+                currentQuestion.choices.forEach((choice, index) => {
+                    const button = document.createElement('button');
+                    button.innerText = choice;
+                    button.classList.add('choice-button');
+                    button.addEventListener('click', () => selectAnswer(index));
+                    questionContainer.appendChild(button);
+                });
+            }
+            
+            // 重置状态，为显示新题做准备
+            function resetState() {
+                nextButton.style.display = 'none';
+                while (questionContainer.firstChild) {
+                    questionContainer.removeChild(questionContainer.firstChild);
+                }
+            }
+
+            // 当用户选择一个答案时触发
+            function selectAnswer(selectedIndex) {
+                const currentQuestion = questions[currentQuestionIndex];
+                const correctAnswerIndex = currentQuestion.correctAnswer;
+
+                // 找到所有选项按钮
+                const choiceButtons = document.querySelectorAll('.choice-button');
+                choiceButtons.forEach(button => button.disabled = true); // 禁用所有按钮，防止重复点击
+
+                // 检查答案是否正确
+                if (selectedIndex === correctAnswerIndex) {
+                    score++;
+                    choiceButtons[selectedIndex].classList.add('correct');
+                } else {
+                    choiceButtons[selectedIndex].classList.add('incorrect');
+                    choiceButtons[correctAnswerIndex].classList.add('correct'); // 显示正确答案
+                }
+                
+                // 显示“下一题”或“查看结果”按钮
+                if (currentQuestionIndex < questions.length - 1) {
+                    nextButton.innerText = '下一题';
+                    nextButton.style.display = 'block';
+                } else {
+                    nextButton.innerText = '查看结果';
+                    nextButton.style.display = 'block';
+                }
+            }
+
+            // 显示最终结果
+            function showResults() {
+                resetState();
+                questionContainer.style.display = 'none'; // 隐藏题目区域
+                resultsContainer.innerHTML = `你答对了 ${score} / ${questions.length} 道题！`;
+                resultsContainer.style.display = 'block';
+                nextButton.innerText = '重新开始';
+                nextButton.style.display = 'block';
+            }
+
+            // “下一题”按钮的点击事件
+            nextButton.addEventListener('click', () => {
+                if (nextButton.innerText === '重新开始') {
+                    startQuiz();
+                    questionContainer.style.display = 'block'; // 重新显示题目区域
+                    return;
+                }
+                
+                currentQuestionIndex++;
+                if (currentQuestionIndex < questions.length) {
+                    showQuestion();
+                } else {
+                    showResults();
+                }
+            });
+
+            // 页面加载完成后，立刻执行loadQuestions函数
+            loadQuestions();
+        </script>
+    </body>
+    </html>
+    
